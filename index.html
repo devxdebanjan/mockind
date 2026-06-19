@@ -1,0 +1,1091 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LogicArena — Mode 2 Practice</title>
+  <meta name="description" content="LogicArena Mode 2 Practice — evaluate logic circuits against the clock" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    /* ── Reset & Base ─────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg-primary: #f8f9fc;
+      --bg-secondary: #ffffff;
+      --bg-card: #ffffff;
+      --bg-input: #f0f2f7;
+      --text-primary: #1a1d2e;
+      --text-secondary: #5a5f7a;
+      --text-muted: #9298b0;
+      --border-color: #e2e5f0;
+      --border-focus: #7c8cf8;
+
+      /* Sober neon accents */
+      --accent: #6c7bf0;
+      --accent-soft: #8b97f7;
+      --accent-glow: rgba(108, 123, 240, 0.12);
+      --accent-bg: rgba(108, 123, 240, 0.06);
+
+      --success: #4eca8b;
+      --success-glow: rgba(78, 202, 139, 0.15);
+      --danger: #f06c7a;
+      --danger-glow: rgba(240, 108, 122, 0.15);
+      --warning: #f0b84c;
+      --warning-glow: rgba(240, 184, 76, 0.15);
+
+      --gate-and: #6c7bf0;
+      --gate-or: #4ecab4;
+      --gate-nand: #f0884c;
+      --gate-nor: #f06c7a;
+      --gate-xor: #b07cf0;
+      --gate-xnor: #7cc4f0;
+
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --radius-xl: 20px;
+
+      --shadow-sm: 0 1px 3px rgba(26, 29, 46, 0.06);
+      --shadow-md: 0 4px 12px rgba(26, 29, 46, 0.08);
+      --shadow-lg: 0 8px 30px rgba(26, 29, 46, 0.10);
+
+      --font-sans: 'Inter', -apple-system, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+
+      --transition: 0.2s ease;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Layout ───────────────────────────────────────────────────── */
+    .app-container {
+      width: 100%;
+      max-width: 860px;
+      padding: 24px 20px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .app-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .app-logo {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text-primary);
+      letter-spacing: -0.3px;
+    }
+
+    .app-logo span { color: var(--accent); }
+
+    .connection-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-muted);
+      padding: 4px 10px;
+      border-radius: 20px;
+      background: var(--bg-input);
+    }
+
+    .connection-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--text-muted);
+      transition: background var(--transition);
+    }
+
+    .connection-dot.connected { background: var(--success); box-shadow: 0 0 6px var(--success-glow); }
+    .connection-dot.error { background: var(--danger); }
+
+    /* ── Screens ──────────────────────────────────────────────────── */
+    .screen {
+      display: none;
+      flex: 1;
+      flex-direction: column;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .screen.active { display: flex; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── Lobby Screen ─────────────────────────────────────────────── */
+    #lobby-screen {
+      align-items: center;
+      justify-content: center;
+      gap: 28px;
+    }
+
+    .lobby-icon {
+      width: 80px;
+      height: 80px;
+      border-radius: var(--radius-xl);
+      background: var(--accent-bg);
+      border: 1.5px solid rgba(108, 123, 240, 0.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 36px;
+    }
+
+    .lobby-title {
+      font-size: 26px;
+      font-weight: 700;
+      text-align: center;
+      letter-spacing: -0.5px;
+    }
+
+    .lobby-desc {
+      font-size: 15px;
+      color: var(--text-secondary);
+      text-align: center;
+      max-width: 420px;
+      line-height: 1.6;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 28px;
+      border: none;
+      border-radius: var(--radius-md);
+      font-family: var(--font-sans);
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all var(--transition);
+      outline: none;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+      box-shadow: 0 2px 8px rgba(108, 123, 240, 0.25);
+    }
+
+    .btn-primary:hover {
+      background: var(--accent-soft);
+      box-shadow: 0 4px 16px rgba(108, 123, 240, 0.3);
+      transform: translateY(-1px);
+    }
+
+    .btn-primary:active { transform: translateY(0); }
+
+    .btn-secondary {
+      background: var(--bg-input);
+      color: var(--text-primary);
+      border: 1px solid var(--border-color);
+    }
+
+    .btn-secondary:hover {
+      background: var(--border-color);
+    }
+
+
+
+    /* ── Loading Screen ───────────────────────────────────────────── */
+    #loading-screen {
+      align-items: center;
+      justify-content: center;
+      gap: 24px;
+    }
+
+    .loader {
+      width: 48px;
+      height: 48px;
+      border: 3px solid var(--border-color);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .loading-text {
+      font-size: 16px;
+      font-weight: 500;
+      color: var(--text-secondary);
+    }
+
+    .loading-sub {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    /* ── Match Screen ─────────────────────────────────────────────── */
+    .match-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      margin-bottom: 16px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .match-score {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .match-score-label {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .match-score-value {
+      font-size: 28px;
+      font-weight: 700;
+      font-family: var(--font-mono);
+      color: var(--accent);
+    }
+
+    .match-timer {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .match-timer-label {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .match-timer-value {
+      font-size: 28px;
+      font-weight: 700;
+      font-family: var(--font-mono);
+      color: var(--text-primary);
+      transition: color 0.5s ease;
+    }
+
+    .match-timer-value.urgent {
+      color: var(--danger);
+      animation: pulse-urgent 1s ease infinite;
+    }
+
+    @keyframes pulse-urgent {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.6; }
+    }
+
+    .match-question-num {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-secondary);
+    }
+
+    /* ── Circuit Card ─────────────────────────────────────────────── */
+    .circuit-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      box-shadow: var(--shadow-md);
+      margin-bottom: 16px;
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .circuit-card.flash-correct {
+      border-color: var(--success);
+      box-shadow: 0 0 20px var(--success-glow), var(--shadow-md);
+    }
+
+    .circuit-card.flash-wrong {
+      border-color: var(--danger);
+      box-shadow: 0 0 20px var(--danger-glow), var(--shadow-md);
+    }
+
+    .circuit-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: 16px;
+    }
+
+    .circuit-svg-container {
+      width: 100%;
+      overflow-x: auto;
+      display: flex;
+      justify-content: center;
+    }
+
+    .circuit-svg-container svg {
+      max-width: 100%;
+      height: auto;
+    }
+
+    /* ── Answer Area ──────────────────────────────────────────────── */
+    .answer-area {
+      display: flex;
+      gap: 12px;
+      align-items: stretch;
+    }
+
+    .answer-input {
+      flex: 1;
+      padding: 14px 18px;
+      border: 2px solid var(--border-color);
+      border-radius: var(--radius-md);
+      font-family: var(--font-mono);
+      font-size: 18px;
+      font-weight: 600;
+      background: var(--bg-card);
+      color: var(--text-primary);
+      letter-spacing: 2px;
+      text-align: center;
+      transition: border-color var(--transition), box-shadow var(--transition);
+      outline: none;
+    }
+
+    .answer-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    .answer-input::placeholder {
+      color: var(--text-muted);
+      font-size: 14px;
+      letter-spacing: 0;
+    }
+
+    .btn-submit {
+      padding: 14px 24px;
+      font-size: 15px;
+    }
+
+    /* ── Answer Feedback Overlay ──────────────────────────────────── */
+    .answer-feedback {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0.8);
+      font-size: 48px;
+      font-weight: 700;
+      font-family: var(--font-mono);
+      pointer-events: none;
+      opacity: 0;
+      z-index: 100;
+      transition: none;
+    }
+
+    .answer-feedback.show {
+      animation: feedbackPop 0.5s ease forwards;
+    }
+
+    .answer-feedback.correct { color: var(--success); }
+    .answer-feedback.wrong { color: var(--danger); }
+
+    @keyframes feedbackPop {
+      0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+      30% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
+      60% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+      100% { opacity: 0; transform: translate(-50%, -60%) scale(0.9); }
+    }
+
+    /* ── Results Screen ───────────────────────────────────────────── */
+    #results-screen {
+      align-items: center;
+      justify-content: center;
+      gap: 24px;
+    }
+
+    .results-title {
+      font-size: 24px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+    }
+
+    .results-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      width: 100%;
+      max-width: 420px;
+    }
+
+    .result-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      text-align: center;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .result-card.highlight {
+      border-color: rgba(108, 123, 240, 0.2);
+      background: var(--accent-bg);
+    }
+
+    .result-value {
+      font-size: 28px;
+      font-weight: 700;
+      font-family: var(--font-mono);
+      color: var(--accent);
+    }
+
+    .result-label {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      margin-top: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* ── Log Panel ────────────────────────────────────────────────── */
+    .log-panel {
+      margin-top: auto;
+      padding-top: 16px;
+      border-top: 1px solid var(--border-color);
+    }
+
+    .log-toggle {
+      font-size: 12px;
+      color: var(--text-muted);
+      cursor: pointer;
+      user-select: none;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      margin-bottom: 8px;
+    }
+
+    .log-content {
+      max-height: 160px;
+      overflow-y: auto;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-muted);
+      background: var(--bg-input);
+      border-radius: var(--radius-sm);
+      padding: 8px 12px;
+      display: none;
+    }
+
+    .log-content.open { display: block; }
+
+    .log-entry { padding: 2px 0; }
+    .log-entry.error { color: var(--danger); }
+    .log-entry.success { color: var(--success); }
+    .log-entry.info { color: var(--accent); }
+
+    /* ── Responsive ───────────────────────────────────────────────── */
+    @media (max-width: 600px) {
+      .circuit-layout { flex-direction: column; }
+      .results-grid { grid-template-columns: 1fr; }
+      .match-score-value, .match-timer-value { font-size: 22px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="app-container">
+  <!-- Header -->
+  <header class="app-header">
+    <div class="app-logo">Logic<span>Arena</span></div>
+    <div class="connection-badge">
+      <div class="connection-dot" id="conn-dot"></div>
+      <span id="conn-text">Disconnected</span>
+    </div>
+  </header>
+
+  <!-- Lobby Screen -->
+  <div class="screen active" id="lobby-screen">
+    <div class="lobby-icon">⚡</div>
+    <h1 class="lobby-title">Mode 2 — Circuit Evaluator</h1>
+    <p class="lobby-desc">
+      You'll be given logic circuits with all inputs and gates.
+      Evaluate the final output as fast as you can. You have <strong>60 seconds</strong>.
+    </p>
+    <button class="btn btn-primary" id="btn-start" onclick="startMatch()">
+      ▶ Start Practice Match
+    </button>
+  </div>
+
+  <!-- Loading Screen -->
+  <div class="screen" id="loading-screen">
+    <div class="loader"></div>
+    <div class="loading-text">Preparing circuits…</div>
+    <div class="loading-sub">Generating questions from topologies</div>
+  </div>
+
+  <!-- Match Screen -->
+  <div class="screen" id="match-screen">
+    <div class="match-header">
+      <div class="match-score">
+        <div class="match-score-label">Score</div>
+        <div class="match-score-value" id="score-display">0</div>
+      </div>
+      <div class="match-question-num" id="question-num">Q1</div>
+      <div class="match-timer">
+        <div class="match-timer-label">Time</div>
+        <div class="match-timer-value" id="timer-display">60.0</div>
+      </div>
+    </div>
+
+    <div class="circuit-card" id="circuit-card">
+      <div class="circuit-title">Evaluate this circuit</div>
+      <div class="circuit-svg-container" id="circuit-svg-container"></div>
+    </div>
+
+    <div class="answer-area">
+      <input
+        type="text"
+        class="answer-input"
+        id="answer-input"
+        placeholder="Enter output…"
+        autocomplete="off"
+        autofocus
+      />
+      <button class="btn btn-primary btn-submit" id="btn-submit" onclick="submitAnswer()">
+        Submit
+      </button>
+    </div>
+  </div>
+
+  <!-- Results Screen -->
+  <div class="screen" id="results-screen">
+    <div class="lobby-icon">🏁</div>
+    <h2 class="results-title">Match Complete</h2>
+    <div class="results-grid">
+      <div class="result-card highlight">
+        <div class="result-value" id="res-score">0</div>
+        <div class="result-label">Questions Solved</div>
+      </div>
+      <div class="result-card">
+        <div class="result-value" id="res-attempted">0</div>
+        <div class="result-label">Attempted</div>
+      </div>
+      <div class="result-card">
+        <div class="result-value" id="res-avg-time">—</div>
+        <div class="result-label">Avg Solve Time</div>
+      </div>
+      <div class="result-card">
+        <div class="result-value" id="res-fastest">—</div>
+        <div class="result-label">Fastest Solve</div>
+      </div>
+    </div>
+    <button class="btn btn-primary" onclick="playAgain()">▶ Play Again</button>
+    <button class="btn btn-secondary" onclick="backToLobby()">← Back to Lobby</button>
+  </div>
+
+  <!-- Answer Feedback Overlay -->
+  <div class="answer-feedback" id="answer-feedback"></div>
+
+  <!-- Log Panel -->
+  <div class="log-panel">
+    <div class="log-toggle" onclick="toggleLog()">
+      <span id="log-arrow">▸</span> WebSocket Log
+    </div>
+    <div class="log-content" id="log-content"></div>
+  </div>
+</div>
+
+<script>
+  // ── Configuration ────────────────────────────────────────────────────
+  const WS_HOST = location.hostname || 'localhost';
+  const WS_BASE = `ws://${WS_HOST}:8000/api/v1`;
+
+  // ── State ────────────────────────────────────────────────────────────
+  let ws = null;
+  let matchActive = false;
+  let currentQuestion = null;
+  let currentScore = 0;
+  let currentQuestionIndex = 0;
+  let totalQuestions = 0;
+  let timerInterval = null;
+  let timerEnd = null;
+
+  // ── Screen Management ────────────────────────────────────────────────
+  function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+  }
+
+  // ── Connection Status ────────────────────────────────────────────────
+  function setConnectionStatus(status) {
+    const dot = document.getElementById('conn-dot');
+    const text = document.getElementById('conn-text');
+    dot.className = 'connection-dot';
+    if (status === 'connected') {
+      dot.classList.add('connected');
+      text.textContent = 'Connected';
+    } else if (status === 'error') {
+      dot.classList.add('error');
+      text.textContent = 'Disconnected';
+    } else {
+      text.textContent = 'Connecting…';
+    }
+  }
+
+  // ── Logging ──────────────────────────────────────────────────────────
+  function log(msg, type = '') {
+    const el = document.getElementById('log-content');
+    const time = new Date().toLocaleTimeString('en-GB', { hour12: false });
+    const entry = document.createElement('div');
+    entry.className = `log-entry ${type}`;
+    entry.textContent = `[${time}] ${msg}`;
+    el.appendChild(entry);
+    el.scrollTop = el.scrollHeight;
+  }
+
+  function toggleLog() {
+    const el = document.getElementById('log-content');
+    const arrow = document.getElementById('log-arrow');
+    el.classList.toggle('open');
+    arrow.textContent = el.classList.contains('open') ? '▾' : '▸';
+  }
+
+  // ── Circuit Evaluation (Frontend — instant feedback) ─────────────────
+  function applyGate(gateType, in1, in2) {
+    const len = Math.max(in1.length, in2.length);
+    in1 = in1.padStart(len, '0');
+    in2 = in2.padStart(len, '0');
+    let out = '';
+    for (let i = 0; i < len; i++) {
+      const v1 = parseInt(in1[i]), v2 = parseInt(in2[i]);
+      let res;
+      switch (gateType) {
+        case 'AND':  res = v1 & v2; break;
+        case 'OR':   res = v1 | v2; break;
+        case 'NAND': res = (~(v1 & v2)) & 1; break;
+        case 'NOR':  res = (~(v1 | v2)) & 1; break;
+        case 'XOR':  res = v1 ^ v2; break;
+        case 'XNOR': res = (~(v1 ^ v2)) & 1; break;
+        default: throw new Error(`Unknown gate: ${gateType}`);
+      }
+      out += res.toString();
+    }
+    return out;
+  }
+
+  function evaluateCircuitLocally(circuit) {
+    const values = { ...circuit.inputs };
+    let finalOutput = '';
+    for (const gate of circuit.gates) {
+      const in1 = values[gate.inputs[0]];
+      const in2 = values[gate.inputs[1]];
+      if (in1 === undefined || in2 === undefined) return null;
+      const outVal = applyGate(gate.type, in1, in2);
+      const outId = gate.id.replace('G', 'Out');
+      values[outId] = outVal;
+      finalOutput = outVal;
+    }
+    return finalOutput;
+  }
+
+  // ── Answer Feedback Flash ────────────────────────────────────────────
+  function showFeedback(correct) {
+    const el = document.getElementById('answer-feedback');
+    const card = document.getElementById('circuit-card');
+
+    el.textContent = correct ? '✓' : '✗';
+    el.className = `answer-feedback ${correct ? 'correct' : 'wrong'} show`;
+    card.classList.add(correct ? 'flash-correct' : 'flash-wrong');
+
+    setTimeout(() => {
+      el.className = 'answer-feedback';
+      card.classList.remove('flash-correct', 'flash-wrong');
+    }, 500);
+  }
+
+  // ── Timer ────────────────────────────────────────────────────────────
+  function startTimer(durationSeconds) {
+    timerEnd = Date.now() + durationSeconds * 1000;
+    updateTimer();
+    timerInterval = setInterval(updateTimer, 100);
+  }
+
+  function updateTimer() {
+    const remaining = Math.max(0, (timerEnd - Date.now()) / 1000);
+    const display = document.getElementById('timer-display');
+    display.textContent = remaining.toFixed(1);
+
+    if (remaining <= 5) {
+      display.classList.add('urgent');
+    } else {
+      display.classList.remove('urgent');
+    }
+
+    if (remaining <= 0) {
+      clearInterval(timerInterval);
+      timerInterval = null;
+    }
+  }
+
+  function stopTimer() {
+    if (timerInterval) {
+      clearInterval(timerInterval);
+      timerInterval = null;
+    }
+  }
+
+  // ── Circuit Rendering (SVG) ──────────────────────────────────────────
+  const GATE_COLORS = {
+    AND: '#6c7bf0', OR: '#4ecab4', NAND: '#f0884c',
+    NOR: '#f06c7a', XOR: '#b07cf0', XNOR: '#7cc4f0',
+  };
+
+  function renderCircuit(circuit) {
+    const container = document.getElementById('circuit-svg-container');
+
+    // ── 1. Build graph nodes ────────────────────────────────────────
+    const nodes = {};
+    const edges = [];
+
+    // Input nodes (depth 0)
+    const inputNames = Object.keys(circuit.inputs).sort(
+      (a, b) => parseInt(a.replace('In', '')) - parseInt(b.replace('In', ''))
+    );
+    for (const name of inputNames) {
+      nodes[name] = { id: name, type: 'input', label: circuit.inputs[name], depth: 0 };
+    }
+
+    // Gate nodes — compute depth from dependencies
+    let maxDepth = 0;
+    for (const gate of circuit.gates) {
+      const outId = gate.id.replace('G', 'Out');
+      const depths = gate.inputs.map(inp => nodes[inp]?.depth ?? 0);
+      const depth = Math.max(...depths) + 1;
+      maxDepth = Math.max(maxDepth, depth);
+      nodes[outId] = {
+        id: outId, type: 'gate', gateType: gate.type,
+        depth, gateInputs: gate.inputs,
+      };
+      gate.inputs.forEach((inp, idx) => edges.push({ from: inp, to: outId, inputIdx: idx }));
+    }
+
+    // Final output node
+    const lastGate = circuit.gates[circuit.gates.length - 1];
+    const finalOutId = lastGate.id.replace('G', 'Out');
+    const outDepth = maxDepth + 1;
+    nodes['_output'] = { id: '_output', type: 'output', depth: outDepth };
+    edges.push({ from: finalOutId, to: '_output' });
+
+    // ── 2. Group by column (depth) ──────────────────────────────────
+    const columns = {};
+    for (const n of Object.values(nodes)) {
+      (columns[n.depth] ??= []).push(n);
+    }
+
+    // ── 3. Layout positions ─────────────────────────────────────────
+    const NW = 64, NH = 34;          // node size
+    const COL_GAP = 120, ROW_GAP = 52;
+    const PAD_X = 44, PAD_Y = 32;
+
+    let maxRows = 0;
+    for (const col of Object.values(columns)) maxRows = Math.max(maxRows, col.length);
+
+    const svgW = PAD_X * 2 + outDepth * COL_GAP + NW;
+    // Add 60px bottom padding for the horizontal "bus" lanes
+    const svgH = PAD_Y * 2 + Math.max((maxRows - 1) * ROW_GAP + NH, NH + 40) + 60;
+
+    for (let d = 0; d <= outDepth; d++) {
+      const col = columns[d] || [];
+      const totalH = (col.length - 1) * ROW_GAP;
+      // Center the nodes vertically, shifted up slightly to make room for bus lanes
+      const startY = (svgH - 60 - totalH) / 2 - NH / 2; 
+      
+      const gap_start = PAD_X + d * COL_GAP + NW;
+      const step = 40 / (col.length + 1);
+
+      for (let i = 0; i < col.length; i++) {
+        col[i].x = PAD_X + d * COL_GAP;
+        col[i].y = startY + i * ROW_GAP;
+        
+        // Each node gets a unique vertical trunk X in the gap immediately after it
+        col[i].trunkX = gap_start + 8 + (i + 1) * step;
+        
+        // Each node gets a unique horizontal bus lane Y at the bottom of the SVG
+        col[i].busY = svgH - 50 + d * 6 + i * 4; 
+      }
+    }
+
+    // ── 4. Build SVG ────────────────────────────────────────────────
+    const parts = [];
+    parts.push(`<svg viewBox="0 0 ${svgW} ${svgH}" xmlns="http://www.w3.org/2000/svg" style="font-family:'JetBrains Mono',monospace;">`);
+
+    const palette = ['#e6194b', '#3cb44b', '#f58231', '#4363d8', '#911eb4', '#46f0f0', '#f032e6', '#bcf60c', '#008080', '#e6beff', '#9a6324', '#800000', '#aaffc3', '#808000', '#ffd8b1', '#000075', '#808080'];
+    let cIdx = 0;
+    for (const n of Object.values(nodes)) {
+      n.wireColor = palette[cIdx++ % palette.length];
+    }
+
+    // Wires (drawn first, behind nodes)
+    for (const e of edges) {
+      const from = nodes[e.from], to = nodes[e.to];
+      const x1 = from.x + NW, y1 = from.y + NH / 2;
+      const x2 = to.x;
+      let y2 = to.y + NH / 2;
+
+      // Offset input ports vertically for gates with 2 inputs
+      let inputIdx = e.inputIdx !== undefined ? e.inputIdx : 0;
+      if (to.type === 'gate' && to.gateInputs && to.gateInputs.length > 1) {
+        y2 += (inputIdx === 0 ? -7 : 7);
+      }
+
+      const tx = from.trunkX;
+      let path = `M${x1},${y1} L${tx},${y1} `;
+
+      if (to.depth - from.depth > 1) {
+        // Column skip routing: drop to the bus lane to avoid crossing intermediate nodes
+        const by = from.busY;
+        const destTx = x2 - 28 + (inputIdx === 0 ? -10 : 10);
+        
+        path += `L${tx},${by} L${destTx},${by} L${destTx},${y2} L${x2},${y2}`;
+        parts.push(`<circle cx="${destTx}" cy="${by}" r="2" fill="${from.wireColor}" />`);
+      } else {
+        // Adjacent routing: drop directly to destination port Y
+        path += `L${tx},${y2} L${x2},${y2}`;
+      }
+
+      parts.push(`<path d="${path}" fill="none" stroke="${from.wireColor}" stroke-width="2" stroke-linejoin="round" />`);
+      
+      // Junction dot at the source trunk tap
+      parts.push(`<circle cx="${tx}" cy="${y1}" r="2" fill="${from.wireColor}" />`);
+    }
+
+    // Nodes
+    for (const n of Object.values(nodes)) {
+      if (n.type === 'input') {
+        parts.push(`<rect x="${n.x}" y="${n.y}" width="${NW}" height="${NH}" rx="17" fill="#eef0f8" stroke="#d0d4e6" stroke-width="1.5" />`);
+        parts.push(`<text x="${n.x + NW / 2}" y="${n.y + NH / 2 + 1}" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="600" fill="#6c7bf0">${n.label}</text>`);
+      } else if (n.type === 'gate') {
+        const c = GATE_COLORS[n.gateType] || '#6c7bf0';
+        parts.push(`<rect x="${n.x}" y="${n.y}" width="${NW}" height="${NH}" rx="6" fill="${c}" />`);
+        parts.push(`<text x="${n.x + NW / 2}" y="${n.y + NH / 2 + 1}" text-anchor="middle" dominant-baseline="central" font-size="11" font-weight="600" fill="#fff">${n.gateType}</text>`);
+      } else if (n.type === 'output') {
+        const cx = n.x + NW / 2, cy = n.y + NH / 2;
+        parts.push(`<circle cx="${cx}" cy="${cy}" r="20" fill="none" stroke="#6c7bf0" stroke-width="2" stroke-dasharray="5,3" />`);
+        parts.push(`<text x="${cx}" y="${cy + 1}" text-anchor="middle" dominant-baseline="central" font-family="Inter,sans-serif" font-size="20" font-weight="700" fill="#6c7bf0">?</text>`);
+      }
+    }
+
+    parts.push('</svg>');
+    container.innerHTML = parts.join('\n');
+  }
+
+  // ── WebSocket ────────────────────────────────────────────────────────
+  function connectWS() {
+    if (ws && ws.readyState <= 1) {
+      ws.close();
+    }
+
+    setConnectionStatus('connecting');
+    log('Connecting to WebSocket…', 'info');
+
+    ws = new WebSocket(`${WS_BASE}/ws/mode2/practice`);
+
+    ws.onopen = () => {
+      setConnectionStatus('connected');
+      log('WebSocket connected', 'success');
+    };
+
+    ws.onclose = (e) => {
+      setConnectionStatus('error');
+      log(`WebSocket closed: code=${e.code} reason=${e.reason || 'none'}`, 'error');
+
+      if (matchActive) {
+        matchActive = false;
+        stopTimer();
+      }
+    };
+
+    ws.onerror = () => {
+      setConnectionStatus('error');
+      log('WebSocket error', 'error');
+    };
+
+    ws.onmessage = (event) => {
+      const msg = JSON.parse(event.data);
+      handleMessage(msg);
+    };
+  }
+
+  function handleMessage(msg) {
+    log(`← ${msg.type}: ${JSON.stringify(msg).substring(0, 120)}`, 'info');
+
+    switch (msg.type) {
+      case 'match_loading':
+        showScreen('loading-screen');
+        break;
+
+      case 'match_started':
+        matchActive = true;
+        currentScore = 0;
+        currentQuestionIndex = 0;
+        totalQuestions = msg.total_questions;
+        currentQuestion = msg.question;
+
+        document.getElementById('score-display').textContent = '0';
+        document.getElementById('question-num').textContent = `Q1 / ${totalQuestions}`;
+
+        renderCircuit(msg.question.circuit);
+        showScreen('match-screen');
+        startTimer(msg.duration_seconds);
+
+        // Focus the answer input
+        const input = document.getElementById('answer-input');
+        input.value = '';
+        input.focus();
+        break;
+
+      case 'answer_result': {
+        // Show instant feedback (this is the backend confirmation)
+        // Frontend already showed instant feedback, but we update score from server
+        currentScore = msg.score;
+        document.getElementById('score-display').textContent = currentScore;
+
+        if (msg.next_question) {
+          currentQuestion = msg.next_question;
+          currentQuestionIndex = msg.next_question.index;
+          document.getElementById('question-num').textContent = `Q${currentQuestionIndex + 1} / ${totalQuestions}`;
+          renderCircuit(msg.next_question.circuit);
+          document.getElementById('answer-input').value = '';
+          document.getElementById('answer-input').focus();
+        }
+        break;
+      }
+
+      case 'match_ended':
+        matchActive = false;
+        stopTimer();
+        showResults(msg.stats);
+        showScreen('results-screen');
+        log(`Match ended: ${msg.reason}`, 'success');
+        break;
+
+      case 'error':
+        log(`Server error: ${msg.message}`, 'error');
+        break;
+
+      case 'ping':
+        // Respond to heartbeat
+        if (ws && ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({ type: 'pong' }));
+        }
+        break;
+    }
+  }
+
+  // ── Actions ──────────────────────────────────────────────────────────
+  function startMatch() {
+    document.getElementById('btn-start').disabled = true;
+
+    connectWS();
+
+    // Wait for connection, then send start_match
+    const waitForOpen = setInterval(() => {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        clearInterval(waitForOpen);
+        log('→ start_match', 'info');
+        ws.send(JSON.stringify({ type: 'start_match' }));
+        document.getElementById('btn-start').disabled = false;
+      } else if (ws && ws.readyState >= 2) {
+        clearInterval(waitForOpen);
+        document.getElementById('btn-start').disabled = false;
+      }
+    }, 100);
+  }
+
+  function submitAnswer() {
+    if (!matchActive || !currentQuestion || !ws || ws.readyState !== WebSocket.OPEN) return;
+
+    const input = document.getElementById('answer-input');
+    const answer = input.value.trim();
+    if (!answer) return;
+
+    // ── Frontend instant validation ──
+    const expectedAnswer = evaluateCircuitLocally(currentQuestion.circuit);
+    const isCorrect = expectedAnswer !== null && answer === expectedAnswer;
+    showFeedback(isCorrect);
+
+    // ── Send to backend (authoritative) ──
+    const payload = {
+      type: 'submit_answer',
+      answer: answer,
+      question_index: currentQuestion.index,
+    };
+    log(`→ submit_answer: "${answer}" (frontend says: ${isCorrect ? 'correct' : 'wrong'})`, 'info');
+    ws.send(JSON.stringify(payload));
+  }
+
+  function showResults(stats) {
+    document.getElementById('res-score').textContent = stats.questions_solved;
+    document.getElementById('res-attempted').textContent = stats.questions_attempted;
+    document.getElementById('res-avg-time').textContent =
+      stats.avg_solve_time_ms > 0 ? `${(stats.avg_solve_time_ms / 1000).toFixed(2)}s` : '—';
+    document.getElementById('res-fastest').textContent =
+      stats.fastest_solve_time_ms > 0 ? `${(stats.fastest_solve_time_ms / 1000).toFixed(2)}s` : '—';
+  }
+
+  function playAgain() {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      log('→ start_match (play again)', 'info');
+      ws.send(JSON.stringify({ type: 'start_match' }));
+    } else {
+      startMatch();
+    }
+  }
+
+  function backToLobby() {
+    if (ws && ws.readyState <= 1) {
+      ws.close();
+    }
+    showScreen('lobby-screen');
+  }
+
+  // ── Keyboard Shortcut: Enter to submit ───────────────────────────────
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && matchActive) {
+      e.preventDefault();
+      submitAnswer();
+    }
+  });
+</script>
+
+</body>
+</html>
