@@ -626,8 +626,8 @@
 
 <script>
   // ── Configuration ────────────────────────────────────────────────────
-  const WS_HOST = location.hostname || 'localhost';
-  const WS_BASE = `ws://${WS_HOST}:8000/api/v1`;
+  const WS_HOST = 'https://logicback.onrender.com' || 'localhost';
+  const WS_BASE = `ws://${WS_HOST}:10000/api/v1`;
 
   // ── State ────────────────────────────────────────────────────────────
   let ws = null;
